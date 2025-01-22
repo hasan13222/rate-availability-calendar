@@ -64,7 +64,7 @@ export default function useRoomRateAvailabilityCalendar(params: IParams) {
   url.search = new URLSearchParams({
     start_date: params.start_date,
     end_date: params.end_date,
-    // cursor: "0", // for infinite scroll
+    cursor: "0",
   }).toString();
 
   // Use React Query's useQuery hook to fetch data
