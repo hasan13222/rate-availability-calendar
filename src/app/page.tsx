@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 // Import necessary modules and components
@@ -38,6 +39,7 @@ import { countDaysByMonth } from "@/utils";
 import RoomRateAvailabilityCalendar from "./(components)/RoomCalendar";
 import Navbar from "@/components/Navbar";
 import useRoomRateAvailabilityCalendar from "./(hooks)/useRoomRateAvailabilityCalendar";
+import InfiniteScroll from "react-infinite-scroll-component";
 
 // Define the form type for the date range picker
 export type CalendarForm = {
@@ -128,11 +130,12 @@ export default function Page() {
     }
   });
 
-  // State for calendar dates and months
+  // State for calendar dates and months and cursor
   const [calenderDates, setCalenderDates] = useState<Array<dayjs.Dayjs>>([]);
   const [calenderMonths, setCalenderMonths] = useState<Array<[string, number]>>(
     []
   );
+  const [cursorVal, setCursorVal] = useState("0");
 
   // Form control for date range picker
   const { control, watch } = useForm<CalendarForm>({
@@ -155,6 +158,8 @@ export default function Page() {
     setCalenderDates(dates);
   }, [watchedDateRange]);
 
+  const [roomData, setRoomData] = useState<any[]>([]);
+
   // Fetch room rate availability calendar data
   const room_calendar = useRoomRateAvailabilityCalendar({
     property_id: propertyId,
@@ -163,7 +168,23 @@ export default function Page() {
       ? watchedDateRange[1]
       : watchedDateRange[0]!.add(2, "month")
     ).format("YYYY-MM-DD"),
+    cursorVal: cursorVal,
   });
+
+  useEffect(() => {
+    if (room_calendar.isSuccess && room_calendar.data?.data.room_categories) {
+      // Use functional state update to avoid stale state issues
+      setRoomData((prevRoomData) => [
+        ...prevRoomData,
+        ...room_calendar.data.data.room_categories,
+      ]);
+    }
+  }, [room_calendar.isSuccess, room_calendar.data, cursorVal]);
+
+  // Debugging: Log updated `roomData`
+  useEffect(() => {
+    console.log("Updated roomData:", roomData);
+  }, [roomData]);
 
   // Component to render each month row in the calendar
   const MonthRow: React.FC<ListChildComponentProps> = memo(function MonthRowFC({
@@ -355,34 +376,45 @@ export default function Page() {
               </AutoSizer>
             </Grid>
           </Grid>
-
-          {room_calendar.isSuccess
-            ? room_calendar.data.data.room_categories.map(
+          {roomData.length > 0 && (
+            <InfiniteScroll
+              dataLength={roomData.length}
+              next={() => setCursorVal(String(parseInt(cursorVal) + 1))}
+              hasMore={(parseInt(cursorVal)+1) * 2 <= roomData.length}
+              loader={
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    height: "100%",
+                  }}
+                >
+                  <CircularProgress />
+                </Box>
+              }
+              endMessage={
+                <p style={{ textAlign: "center" }}>
+                  <b>Yay! You have seen it all</b>
+                </p>
+              }
+            >
+              {roomData.map(
                 (room_category, key) => (
                   <RoomRateAvailabilityCalendar
                     key={key}
                     index={key}
                     InventoryRefs={InventoryRefs}
                     isLastElement={
-                      key === room_calendar.data.data.room_categories.length - 1
+                      key ===
+                      roomData.length - 1
                     }
                     room_category={room_category}
                     handleCalenderScroll={handleCalenderScroll}
                   />
                 )
-              )
-            : null}
-          {room_calendar.isLoading && (
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                height: "100%",
-              }}
-            >
-              <CircularProgress />
-            </Box>
+              )}
+            </InfiniteScroll>
           )}
         </Card>
       </Box>
