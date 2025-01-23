@@ -220,6 +220,7 @@ export default function RoomRateAvailabilityCalendar(props: IProps) {
           "&::-webkit-scrollbar": {
             display: "none",
           },
+          transition: "transform 0.2s ease-in-out"
         }
   );
 
@@ -389,7 +390,8 @@ export default function RoomRateAvailabilityCalendar(props: IProps) {
                 width={width}
                 columnCount={props.room_category.inventory_calendar.length}
                 columnWidth={() => 74}
-                rowCount={calendarGridData.length}
+                rowCount={calendarGridData.length}                
+                overscanColumnCount={20}
                 rowHeight={(index: number) => {
                   if (calendarGridData[index].type === "inventory") {
                     return 30;

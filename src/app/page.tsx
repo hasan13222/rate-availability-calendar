@@ -68,67 +68,76 @@ export default function Page() {
   const InventoryRefs = useRef<Array<RefObject<VariableSizeGrid>>>([]);
 
   // Handle horizontal scroll for dates
-  const handleDatesScroll = useCallback(({ scrollLeft }: GridOnScrollProps) => {
-    InventoryRefs.current.forEach((ref) => {
-      if (ref.current) {
-        ref.current.scrollTo({ scrollLeft });
-      }
-    });
-    if (calenderMonthsRef.current) {
-      calenderMonthsRef.current.scrollTo(scrollLeft);
-    }
-  }, []);
-
-  // Handle horizontal scroll for the entire calendar
-  const handleCalenderScroll = useCallback(
-    ({ scrollLeft }: GridOnScrollProps) => {
-      InventoryRefs.current.forEach((ref) => {
-        if (ref.current) {
-          ref.current.scrollTo({ scrollLeft });
-        }
-      });
-      if (calenderMonthsRef.current) {
-        calenderMonthsRef.current.scrollTo(scrollLeft);
-      }
-      if (calenderDatesRef.current) {
-        calenderDatesRef.current.scrollTo({ scrollLeft });
-      }
-    },
-    []
-  );
-
-  // Add event listener for wheel scroll to handle horizontal scrolling
-  useEffect(() => {
-    const { current: rootContainer } = rootContainerRef;
-    if (rootContainer) {
-      const handler = (e: WheelEvent) => {
-        if (
-          mainGridContainerRef.current &&
-          InventoryRefs.current &&
-          calenderMonthsRef.current &&
-          calenderDatesRef.current
-        ) {
-          // Check if deltaX is non-zero (indicating horizontal scroll)
-          if (e.deltaX !== 0) {
-            e.preventDefault();
-            let { scrollLeft } = mainGridContainerRef.current;
-            scrollLeft += e.deltaX;
-
-            InventoryRefs.current.forEach((ref) => {
-              if (ref.current) {
-                ref.current.scrollTo({ scrollLeft });
-              }
-            });
-
-            calenderMonthsRef.current.scrollTo(scrollLeft);
-            calenderDatesRef.current.scrollTo({ scrollLeft });
-          }
-        }
-      };
-      rootContainer.addEventListener("wheel", handler);
-      return () => rootContainer.removeEventListener("wheel", handler);
+const handleDatesScroll = useCallback(({ scrollLeft }: GridOnScrollProps) => {
+  InventoryRefs.current.forEach((ref) => {
+    if (ref?.current) {
+      ref.current.scrollTo({ scrollLeft });
     }
   });
+
+  if (calenderMonthsRef?.current) {
+    calenderMonthsRef.current.scrollTo(scrollLeft);
+  }
+}, []);
+
+const handleCalenderScroll = useCallback(({ scrollLeft }: GridOnScrollProps) => {
+  InventoryRefs.current.forEach((ref) => {
+    if (ref?.current) {
+      ref.current.scrollTo({ scrollLeft });
+    }
+  });
+
+  if (calenderMonthsRef?.current) {
+    calenderMonthsRef.current.scrollTo(scrollLeft);
+  }
+
+  if (calenderDatesRef?.current) {
+    calenderDatesRef.current.scrollTo({ scrollLeft });
+  }
+}, []);
+
+// Add event listener for wheel scroll to handle horizontal scrolling
+useEffect(() => {
+  const rootContainer = rootContainerRef.current;
+
+  if (rootContainer) {
+    const handleWheelScroll = (e: WheelEvent) => {
+      if (
+        mainGridContainerRef.current &&
+        InventoryRefs.current.length > 0 &&
+        calenderMonthsRef.current &&
+        calenderDatesRef.current
+      ) {
+        // Check if deltaX is non-zero (indicating horizontal scroll)
+        if (e.deltaX !== 0) {
+          e.preventDefault();
+          let { scrollLeft } = mainGridContainerRef.current;
+          scrollLeft += e.deltaX;
+
+          InventoryRefs.current.forEach((ref) => {
+            if (ref?.current) {
+              ref.current.scrollTo({ scrollLeft });
+            }
+          });
+
+          calenderMonthsRef.current.scrollTo(scrollLeft);
+          calenderDatesRef.current.scrollTo({ scrollLeft });
+        }
+      }
+    };
+
+    rootContainer.addEventListener("wheel", handleWheelScroll);
+
+    // Cleanup listener on unmount
+    return () => rootContainer.removeEventListener("wheel", handleWheelScroll);
+  }
+}, [
+  rootContainerRef,
+  mainGridContainerRef,
+  InventoryRefs,
+  calenderMonthsRef,
+  calenderDatesRef,
+]);
 
   // State for calendar dates and months and cursor
   const [calenderDates, setCalenderDates] = useState<Array<dayjs.Dayjs>>([]);
@@ -369,6 +378,7 @@ export default function Page() {
                     ref={calenderDatesRef}
                     outerRef={mainGridContainerRef}
                     onScroll={handleDatesScroll}
+                    overscanColumnCount={10}
                   >
                     {DateRow}
                   </FixedSizeGrid>
